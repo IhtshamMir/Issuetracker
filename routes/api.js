@@ -67,8 +67,6 @@ module.exports = function (app) {
               console.log("Error occured while fetching record in get", err);
               return res.json();
             }
-
-            // new code start
             res.json(result);
             db.close();
           });
@@ -76,133 +74,190 @@ module.exports = function (app) {
     })
     .post(function (req, res) {
       console.log("Request received in post");
-      let project = req.params.project;
-      console.log(project, "in post");
-      if (
-        !req.body.created_by ||
-        !req.body.issue_text ||
-        !req.body.issue_title
-      ) {
+      const project = req.params.project;
+      const setData = {};
+       if (!req.body.created_by || !req.body.issue_text || !req.body.issue_title) 
+       {
         console.log("Required field(s) missing in post");
         res.json({ error: "required field(s) missing" });
       } else {
-        let issue_title = req.body.issue_title;
-        let issue_text = req.body.issue_text;
-        let created_by = req.body.created_by;
-        let assigned_to = req.body.assigned_to;
-        let status_text = req.body.status_text;
-        const created_on = new Date().toISOString();
-        const url = process.env["MONGO_URI"];
-        MongoClient.connect(url, function (err, db) {
-          const myDatabase = db.db("Project");
-          const setData = {};
-          if (assigned_to) setData["assigned_to"] = assigned_to;
-          else setData["assigned_to"] = "";
-          if (status_text) setData["status_text"] = status_text;
-          else setData["status_text"] = "";
-          setData["created_by"] = created_by;
-          setData["open"] = true;
-          setData["issue_title"] = issue_title;
-          setData["issue_text"] = issue_text;
-          setData["created_on"] = created_on;
-          setData["updated_on"] = created_on;
-          setData["projectname"] = project;
-          myDatabase
-            .collection("issue tracker")
-            .insertOne(setData, function (err, res) {
-              if (err) throw err;
-              console.log("1 document inserted");
-            });
-          myDatabase
-            .collection("issue tracker")
-            .findOne(setData, {}, function (err, result) {
-              if (err) throw err;
-              res.json({
-                assigned_to: result.assigned_to,
-                status_text: result.status_text,
-                open: result.open,
-                _id: result._id,
-                issue_title: result.issue_title,
-                issue_text: result.issue_text,
-                created_by: result.created_by,
-                created_on: result.created_on,
-                updated_on: result.updated_on,
-              });
-              db.close();
-            });
-        });
-      }
-    })
-    .put(function (req, res) {
-      let project = req.params.project;
-      let ObjectId = require("mongodb").ObjectID;
-      const url = process.env["MONGO_URI"];
-      let _id = req.body._id;
-      let issue_title = req.body.issue_title;
-      let issue_text = req.body.issue_text;
-      let created_by = req.body.created_by;
-      let assigned_to = req.body.assigned_to;
-      let status_text = req.body.status_text;
-      MongoClient.connect(url, function (err, db) {
-        const myDatabase = db.db("Project");
+          const allowedQueryParams = [
+            "assigned_to",
+            "status_text",
+            "created_by",
+            "issue_text ",
+            "issue_title"
+          ];
+              for (const param of allowedQueryParams) 
+              {
+                if (req.body[param]) {
+                  setData[param] = req.body[param];
+                }
+                else{
+                  setData[param]="";
+                }
+              } 
+                  /*let issue_title = req.body.issue_title;
+                    let issue_text = req.body.issue_text;
+                    let created_by = req.body.created_by;
+                    let assigned_to = req.body.assigned_to;
+                    let status_text = req.body.status_text; 
+                    if (assigned_to) 
+                    setData["assigned_to"] = assigned_to;
+                    else 
+                    setData["assigned_to"] = "";
+                    if (status_text) 
+                    setData["status_text"] = status_text;
+                    else 
+                    setData["status_text"] = ""; 
+                    setData["created_by"] = created_by;
+                    setData["issue_title"] = issue_title;
+                    setData["issue_text"] = issue_text;
+                    */
+                    const created_on = new Date().toISOString();
+                    setData["open"] = true;
+                    setData["created_on"] = created_on;
+                    setData["updated_on"] = created_on;
+                    setData["projectname"] = project;
+                    const url = process.env["MONGO_URI"];
+                    MongoClient.connect(url, function (err, db) {
+                    const myDatabase = db.db("Project");
+              
+                    myDatabase
+                      .collection("issue tracker")
+                      .insertOne(setData, function (err, res) {
+                        if (err) 
+                        {
+                          console.log("Error occured while inserting record in data base", err);
+                          return res.json();
+                        }
+                        console.log("Data Successfull inserted ");
+                      });
+                    myDatabase
+                      .collection("issue tracker")
+                      .findOne(setData, {}, function (err, result) {
+                        if (err) 
+                        {
+                          console.log("Error occured while fectching record from data base to display", err);
+                          return res.json();
+                        }
+                        res.json({
+                          assigned_to: result.assigned_to,
+                          status_text: result.status_text,
+                          open: result.open,
+                          _id: result._id,
+                          issue_title: result.issue_title,
+                          issue_text: result.issue_text,
+                          created_by: result.created_by,
+                          created_on: result.created_on,
+                          updated_on: result.updated_on,
+                        });
+                        db.close();
+                       });
+                    });
+                 }
+              })
+    .put(function (req, res) 
+        {
+        console.log("Request received in put");
+        let project = req.params.project;
+        const _id = req.body._id;
         const updated_on = new Date().toISOString();
         const setData = {};
-        if (issue_title) {
-          setData["issue_title"] = issue_title;
-        }
-        if (issue_text) {
-          setData["issue_text"] = issue_text;
-        }
-        if (created_by) {
-          setData["created_by"] = created_by;
-        }
-        if (assigned_to) {
-          setData["assigned_to"] = assigned_to;
-        }
-        if (status_text) {
-          setData["status_text"] = status_text;
-        }
-        if (req.body.open == "false") {
-          setData["open"] = false;
-        }
         setData["updated_on"] = updated_on;
-        setData["projectname"] = project;
-        let newvalues = { $set: setData };
-        if (_id && _id.length == ID_LENGTH) {
-          const myid = new ObjectId(_id);
-          let myquery = { _id: myid };
-          if (
-            !issue_title &
-            !issue_text &
-            !created_by &
-            !assigned_to &
-            !status_text &
-            !req.body.open
-          ) {
-            res.json({ error: "no update field(s) sent", _id: _id });
-          } else {
-            myDatabase
-              .collection("issue tracker")
-              .updateOne(myquery, newvalues, function (err, result) {
-                if (err) throw err;
-                if (result.matchedCount == 0) {
-                  res.json({ error: "could not update", _id: _id });
-                } else {
-                  res.json({ result: "successfully updated", _id: _id });
-                }
-                db.close();
-              });
+       // setData["projectname"] = project;
+        const allowedBodyParams = [
+          "assigned_to",
+          "status_text",
+          "created_by",
+          "issue_text ",
+          "issue_title"
+        ];
+        for (const param of allowedBodyParams) 
+        {
+          if (req.body[param]) {
+            setData[param] = req.body[param];
           }
-        } else if (!_id) {
-          console.log("Entered in missing area");
-          res.json({ error: "missing _id" });
-        } else {
-          console.log("Short ID");
-          res.json({ error: "could not update", _id: _id });
-        }
-      });
-    })
-
+        } 
+          /*let issue_title = req.body.issue_title;
+          let issue_text = req.body.issue_text;
+          let created_by = req.body.created_by;
+          let assigned_to = req.body.assigned_to;
+          let status_text = req.body.status_text;*/
+           /*  if (issue_title) {
+               setData["issue_title"] = issue_title;
+                }
+                if (issue_text) {
+                setData["issue_text"] = issue_text;
+                }
+                if (created_by) {
+                setData["created_by"] = created_by;
+                }
+                if (assigned_to) {
+                setData["assigned_to"] = assigned_to;
+                }
+                if (status_text) {
+                setData["status_text"] = status_text;
+                } */
+                 if (req.body.open == "false")
+                  {
+                     setData["open"] = false;
+                 }
+                    if (_id && _id.length == ID_LENGTH) 
+                     {
+                       if (!req.body.issue_title &  
+                            !req.body.issue_text  &  
+                            !req.body.created_by  &
+                            !req.body.assigned_to &
+                            !req.body.status_text &
+                            !req.body.open
+                          )
+                         {
+                          res.json({ error: "no update field(s) sent", _id: _id });
+                         } 
+                        else 
+                         {
+                          const url = process.env["MONGO_URI"];
+                          const myid = new ObjectId(_id);
+                          let myquery = { _id: myid };
+                          let newvalues = { $set: setData };
+                          MongoClient.connect(url, function (err, db) 
+                          {
+                            const myDatabase = db.db("Project");
+                            myDatabase
+                            .collection("issue tracker")
+                            .updateOne(myquery, newvalues, function (err, result) 
+                            {
+                             if (err) 
+                             {
+                              console.log("Error occured while update operation", err);
+                             }
+                            
+                                if (result.matchedCount == 0) 
+                                {
+                                  res.json({ error: "could not update", _id: _id });
+                                } 
+                                else 
+                                {
+                                  res.json({ result: "successfully updated", _id: _id });
+                                }
+                                db.close();
+                             })
+                           
+                          })
+                         }
+                        }
+                      else if (!_id) 
+                        {
+                           console.log("Entered in missing area");
+                           res.json({ error: "missing _id" });
+                        } 
+                      else 
+                        {
+                          console.log("Short ID");
+                          res.json({ error: "could not update", _id: _id });
+                        }
+       })
     .delete(function (req, res) {
       console.log("Request received in delete");
       const project = req.params.project;
